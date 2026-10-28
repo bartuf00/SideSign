@@ -317,30 +317,10 @@ public extension DeveloperPortal {
         request.httpMethod = "POST"
         request.httpBody = plistData
 
-        // SideInstaller base_headers parity (Windows GSA / akd)
-        // Prefer anisette identity UA; never send Macintosh/Xcode (Apple 503s those).
-        let windowsClientInfo = "<PC> <Windows;6.2(0,0);9200> <com.apple.AuthKit/1 (com.apple.iTunes/12.12.4.1)>"
-        let akdUserAgent = "akd/1.0 CFNetwork/808.1.4"
-        var clientInfo = anisetteData.clientInfo.trimmingCharacters(in: .whitespacesAndNewlines)
-        if clientInfo.isEmpty
-            || clientInfo.contains("MacBook")
-            || clientInfo.contains("macOS")
-            || clientInfo.contains("Mac OS")
-            || clientInfo.contains("<Android;")
-            || clientInfo.contains("Xcode") {
-            clientInfo = windowsClientInfo
-        }
-        var userAgent = anisetteData.userAgent.trimmingCharacters(in: .whitespacesAndNewlines)
-        if userAgent.isEmpty {
-            userAgent = h.grandSlam.userAgent.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        if userAgent.isEmpty
-            || userAgent.contains("Macintosh")
-            || userAgent.contains("Mac OS")
-            || userAgent.contains("Xcode")
-            || userAgent.contains("AuthKit/1 (Macintosh") {
-            userAgent = akdUserAgent
-        }
+        // Preserve the identity provisioned by the anisette server. Replacing
+        // Mac client info with a Windows identity breaks the GrandSlam request.
+        let clientInfo = anisetteData.clientInfo.trimmingCharacters(in: .whitespacesAndNewlines)
+        let userAgent = anisetteData.userAgent.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let headers: [String: String] = [
             "Content-Type": "text/x-xml-plist",
@@ -961,10 +941,7 @@ public extension DeveloperPortal {
         var request = URLRequest(url: url)
         let a = context.anisetteData
         let h = customHeaders
-        var ua = a.userAgent.trimmingCharacters(in: .whitespacesAndNewlines)
-        if ua.isEmpty || ua.contains("Macintosh") || ua.contains("Xcode") || ua.contains("Mac OS") {
-            ua = "akd/1.0 CFNetwork/808.1.4"
-        }
+        let ua = a.userAgent.trimmingCharacters(in: .whitespacesAndNewlines)
         let clientInfo = asMac ? Self.macClientInfoFor2FA : (
             a.clientInfo.isEmpty ? Self.macClientInfoFor2FA : a.clientInfo
         )
